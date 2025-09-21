@@ -97,6 +97,33 @@ Code pointers
 - Server TCP loop: `serve_tcp()` in `mcp_server.py` accepts a connection, wraps it in buffered streams, and handles messages.
 - Client call flow: `MCPClient.call()` sends a request and waits for the response with the matching `id`.
 
+## LLM Agent Flow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant Agent as LLM Agent
+    participant Client as MCP Client
+    participant Server as MCP Server
+
+    User->>Agent: Ask "Find mentions of MCP"
+    Agent->>Client: Decide to use tools
+    Client->>Server: initialize (JSON-RPC, Content-Length framed)
+    Server-->>Client: result (protocolVersion, capabilities)
+    Client->>Server: tools/list
+    Server-->>Client: result {tools: [read_file, search_file]}
+    Agent->>Client: Call search_file(words="MCP")
+    Client->>Server: tools/call {name: "search_file", arguments: {words: "MCP"}}
+    Server-->>Client: result.content[{type: "text", text: "Matches..."}]
+    Agent->>Client: Optionally read_file or refine search
+    Client->>Server: tools/call read_file/search_file
+    Server-->>Client: result.content[...]
+    Agent-->>User: Final answer with findings
+    Client->>Server: shutdown
+    Server-->>Client: result {}
+```
+
 ## Troubleshooting
 
 - "Please provide a search query." — Supply a term: `python3 mcp_client.py search term`.
